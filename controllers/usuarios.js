@@ -1,17 +1,18 @@
-const { response } = require('express');
-const bcrypt = require('bcryptjs');
+const { response } = require("express");
+const bcrypt = require("bcryptjs");
 
-const Usuario = require('../models/usuario');
+const Usuario = require("../models/usuario");
+const { generarJWT } = require("../helpers/jwt");
 
-const getUsuarios = async(req, res) => {
-    const usuarios = await Usuario.find({}, 'nombre email role google');
+const getUsuarios = async (req, res) => {
+    const usuarios = await Usuario.find({}, "nombre email role google");
     res.json({
         ok: true,
         usuarios
-    })
-}
+    });
+};
 
-const postUsuarios = async(req, res = response) => {
+const postUsuarios = async (req, res = response) => {
     const { email, password } = req.body;
 
     try {
@@ -20,8 +21,8 @@ const postUsuarios = async(req, res = response) => {
         if (existeEmail) {
             return res.status(400).json({
                 ok: false,
-                msg: 'El correo ya esta registrado'
-            })
+                msg: "El correo ya esta registrado",
+            });
         }
         const usuario = new Usuario(req.body);
 
@@ -31,23 +32,26 @@ const postUsuarios = async(req, res = response) => {
 
         // Guardar usuario
         await usuario.save();
+
+        
+        // Generar el Token - JWT
+        const token = await generarJWT(usuario.id);
+
         res.json({
             ok: true,
-            usuario
-        })
+            usuario,
+            token
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({
             ok: false,
-            msg: 'Error inesperado... revisar log'
+            msg: "Error inesperado... revisar log",
         });
     }
+};
 
-}
-
-
-const putUsuarios = async(req, res = response) => {
-
+const putUsuarios = async (req, res = response) => {
     // TODO: Validar token y comprobar si el usuario es correcto
 
     const uid = req.params.id;
@@ -60,48 +64,69 @@ const putUsuarios = async(req, res = response) => {
         if (!usuarioDB) {
             return res.status(404).json({
                 ok: false,
-                msg: ' No existe un usuario con ese id'
-            })
+                msg: " No existe un usuario con ese id",
+            });
         }
 
         // Actualizaciones
-        const campos = req.body;
-        if (usuarioDB.email === req.body.email) {
-            delete campos.email;
-        } else {
+        const { password, google, email, ...campos } = req.body;
+        if (usuarioDB.email !== email) {
             const existeEmail = await Usuario.findOne({ email: req.body.email });
             if (existeEmail) {
                 return res.status(400).json({
                     ok: false,
-                    msg: 'Ya existe usuario con ese email'
-                })
+                    msg: "Ya existe usuario con ese email",
+                });
             }
         }
 
+        campos.email = email;
 
-
-        delete campos.password;
-        delete campos.google;
-
-        const usuarioActualizado = await Usuario.findOneAndUpdate(uid, campos, { new: true });
+        const usuarioActualizado = await Usuario.findOneAndUpdate(uid, campos, {
+            new: true,
+        });
 
         res.json({
             ok: true,
-            usuarioActualizado
-        })
-
+            usuarioActualizado,
+        });
     } catch (error) {
-        console.log(error)
         res.status(500).json({
             ok: false,
-            msg: 'Error inesperado'
-        })
+            msg: "Error inesperado",
+        });
     }
-}
+};
 
+const deleteUsuario = async (req, res = response) => {
+    const uid = req.params.id;
+    try {
+        const usuarioDB = await Usuario.findById(uid);
+
+        if (!usuarioDB) {
+            return res.status(404).json({
+                ok: false,
+                msg: " No existe un usuario con ese id",
+            });
+        }
+
+        await Usuario.findByIdAndDelete(uid);
+
+        res.json({
+            ok: true,
+            msg: 'Usuario eliminado'
+        });
+    } catch (error) {
+        res.status(500).json({
+            ok: false,
+            msg: "Error inesperado",
+        });
+    }
+};
 
 module.exports = {
     getUsuarios,
     postUsuarios,
-    putUsuarios
-}
+    putUsuarios,
+    deleteUsuario,
+};
