@@ -5,7 +5,10 @@ const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/jwt");
 
 const getUsuarios = async (req, res) => {
-    const usuarios = await Usuario.find({}, "nombre email role google");
+    const desde = Number(req.query.desde) || 0;
+    const usuarios = await Usuario.find({}, "nombre email role google")
+        .skip(desde)
+        .limit(5);
     res.json({
         ok: true,
         usuarios
@@ -33,7 +36,7 @@ const postUsuarios = async (req, res = response) => {
         // Guardar usuario
         await usuario.save();
 
-        
+
         // Generar el Token - JWT
         const token = await generarJWT(usuario.id);
 
