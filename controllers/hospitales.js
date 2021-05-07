@@ -38,10 +38,22 @@ const postHospital = async (req, res = response) => {
 }
 
 const putHospital = (req, res = response) => {
-    res.json({
-        ok: true,
-        msg: 'putHospital'
-    })
+    const id = req.params.id;
+    try {
+
+
+        res.json({
+            ok: true,
+            msg: 'putHospital',
+            id
+        })
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            msg: 'Comuniquese con el administrador'
+        })
+    }
+
 }
 
 
