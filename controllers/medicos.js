@@ -4,8 +4,8 @@ const Medico = require('../models/medico');
 
 const getMedicos = async (req, res) => {
     const medicos = await Medico.find()
-    .populate('usuario', 'nombre img')
-    .populate('hospital', 'nombre');
+        .populate('usuario', 'nombre img')
+        .populate('hospital', 'nombre');
     res.json({
         ok: true,
         medicos
@@ -35,19 +35,61 @@ const postMedico = async (req, res = response) => {
     }
 }
 
-const putMedico = (req, res = response) => {
-    res.json({
-        ok: true,
-        msg: 'putMedico'
-    })
+const putMedico = async (req, res = response) => {
+
+    const id = req.params.id;
+    const uid = req.uid;
+    try {
+        const medico = await Medico.findById(id);
+        if (!medico) {
+            return res.status(404).json({
+                ok: true,
+                msg: 'Medico no encontrado por id'
+            })
+        }
+
+        const cambiosMedico = {
+            ...req.body,
+            usuario: uid
+        }
+
+        const medicoActualizado = await Medico.findByIdAndUpdate(id, cambiosMedico, { new: true });
+
+        res.json({
+            ok: true,
+            medico: medicoActualizado
+        })
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            msg: 'Comuniquese con el administrador'
+        })
+    }
 }
 
 
-const deleteMedico = (req, res = response) => {
-    res.json({
-        ok: true,
-        msg: 'deleteMedico'
-    })
+const deleteMedico = async (req, res = response) => {
+    const id = req.params.id;
+    try {
+        const medico = await Medico.findById(id);
+        if (!medico) {
+            return res.status(404).json({
+                ok: true,
+                msg: 'Medico no encontrado por id'
+            })
+        }
+
+        await Medico.findByIdAndDelete(id);
+
+        res.json({
+            ok: true
+        })
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            msg: 'Comuniquese con el administrador'
+        })
+    }
 }
 
 module.exports = {
